@@ -1,0 +1,103 @@
+# СТРУКТУРА
+<ul>
+    <li><u>_docs</u></li>
+        <ul>
+            <li><u>logs</u></li>
+                <ul>
+                    <li>try_func.log</li>
+                </ul>
+            <li><u>reports</u></li>
+                <ul>
+                    <li>missing_shop.csv</li>
+                </ul>
+            <li><u>tasks</u></li>
+            <li>readme.md</li>
+        </ul>
+    <li><u>_settings</u></li>
+        <ul>
+            <li><u>database</u></li>
+                <ul>
+                    <li>postgres.py</li>
+                        <ul>
+                            <li><i>_get_database_names()</i></li>
+                            <li><i>_get_login()</i></li>
+                            <li><i>_get_password()</i></li>
+                        </ul>
+                </ul>
+            <li><u>path</u></li>
+                <ul>
+                    <li>sotrans.py</li>
+                        <ul>
+                            <li>class Root</li>
+                                <ul>
+                                    <li><i>_get_sotrans_folder()</i></li>
+                                    <li><i>_get_data_folder()</i></li>
+                                    <li><i>_get_projects_folder()</i></li>
+                                    <li>class Data</li>
+                                        <ul>
+                                            <li><i>_get_export_folder()</i></li>
+                                            <li><i>_get_import_folder()</i></li>
+                                            <li>class Export</li>
+                                                <ul>
+                                                    <li><i>_get_main_folder()</i></li>
+                                                    <li><i>_get_purchases_folder()</i></li>
+                                                    <li><i>_get_sales_folder()</i></li>
+                                                </ul>
+                                            <li>class Import</li>
+                                        </ul>
+                                    <li>class Projects</li>
+                                        <ul>
+                                            <li><i>_get_main_folder()</i></li>
+                                            <li><i>_get_purchases_folder()</i></li>
+                                            <li><i>_get_sales_folder()</i></li>
+                                            <li>class Main</li>
+                                                <ul>
+                                                    <li><i>_get_sotrans_package_folder()</i></li>
+                                                </ul>
+                                            <li>class Purchases</li>
+                                            <li>class Sales</li>
+                                        </ul>
+                                </ul>
+                        </ul>
+                </ul>
+        </ul>
+    <li><u>_tests</u></li>
+    <li><u>constant</u></li>
+        <ul>
+            <li>contragent.py</li>
+            <li>one_c.py</li>
+            <li>shop.py</li>
+        </ul>
+    <li><u>data_clearing</u></li>
+        <ul>
+            <li>one_c.py</li>
+        </ul>
+    <li><u>data_migration</u></li>
+        <ul>
+            <li>to_postgres.py</li>
+        </ul>
+    <li><u>data_transform</u></li>
+        <ul>
+            <li>one_c.py</li>
+        </ul>
+    <li><u>data_validation</u></li>
+        <ul>
+            <li>check.py</li>
+        </ul>
+    <li><u>data_verification</u></li>
+        <ul>
+            <li>one_c.py</li>
+        </ul>
+    <li><u>database</u></li>
+        <ul>
+            <li>postgres.py</li>
+        </ul>
+    <li><u>excel</u></li>
+        <ul>
+            <li>one_c.py</li>
+            <li>vba.py</li>
+                <ul>
+                    <li><i>exec_vba()</i></li>
+                </ul>
+        </ul>
+</ul>
