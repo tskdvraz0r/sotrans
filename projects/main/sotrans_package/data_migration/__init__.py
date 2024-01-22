@@ -1,1 +1,2 @@
 from projects.main.sotrans_package.data_migration import to_postgres
+from projects.main.sotrans_package.data_migration import from_postgres
