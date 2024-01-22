@@ -126,12 +126,12 @@ class Feature:
             # Проверить корректность значения в аргументе "doc_type".
             data_validation.check.value_in_range(
                 value = doc_type,
-                in_range = constant.one_c.DOC_ALIAS.keys()
+                in_range = constant.one_c.get_doc_alias().keys()
             )
 
             # ! MAIN ALGORITHM
             # Получить алиас столбца.
-            column_alias: dict[str: str] = constant.one_c.DOC_ALIAS[doc_type]
+            column_alias: dict[str: str] = constant.one_c.get_doc_alias()[doc_type]
 
             # Удалить nan строки.
             for column_name in ("product_catalog_number", f"{column_alias}_count"):
@@ -145,7 +145,7 @@ class Feature:
             """
             Notes:
                 Функция принимает на вход датафрейм и заполняет пропуски "вниз" в столбцах ("shop_name",
-                "document_batch", "document_movement", "dealer_name").
+                "document_batch", "document_movement").
 
             Args:
                 dataframe (pd.DataFrame): Датафрейм, в котором требуется заполнить пропуски "вниз".
@@ -170,9 +170,11 @@ class Feature:
                     "shop_name",
                     "document_batch",
                     "document_movement",
-                    "dealer_name"
             ):
-                dataframe[column_name] = dataframe[column_name].ffill()
+                dataframe[column_name] = (
+                    dataframe[column_name]
+                    .ffill()
+                )
 
             # Вернуть результат.
             return dataframe
@@ -256,12 +258,12 @@ class Feature:
             # Проверить корректность значения.
             data_validation.check.value_in_range(
                 value = doc_type,
-                in_range = constant.one_c.DOC_ALIAS.keys()
+                in_range = constant.one_c.get_doc_names().keys()
             )
 
             # ! MAIN ALGORITHM
             # Получить алиас столбца.
-            column_alias: str = constant.one_c.DOC_ALIAS[doc_type]
+            column_alias: str = constant.one_c.get_doc_alias()[doc_type]
 
             # Заменить nan значения.
             for column_name in (f"{column_alias}_count", f"{column_alias}_sum_rub", f"{column_alias}_sum_eur"):
@@ -352,7 +354,7 @@ class Feature:
             return dataframe
 
         @staticmethod
-        def del_unclaimed_columns(dataframe: pd.DataFrame) -> pd.DataFrame:
+        def del_unclaimed_columns(dataframe: pd.DataFrame, src_file: str) -> pd.DataFrame:
             """
             Notes:
                 Функция принимает на вход датафрейм и удаляет из него невостребованные столбцы.
@@ -369,33 +371,57 @@ class Feature:
             """
 
             # ! VARIABLES
-            columns: list = [
+            xlsx_columns: list = [
                 "Организация (покупатель) партии",
                 "Цена",
                 "Сумма НДС (в рег. валюте)",
                 "Сумма без НДС (в рег. валюте)"
             ]
 
+            json_columns: list = [
+                "stb_price",
+                "stb_sum_nds"
+            ]
+
             # ! DATA VALIDATION
-            # Проверить тип данных в аргументе "dataframe".
-            data_validation.check.value_type(
-                value = dataframe,
-                expected_type = pd.DataFrame
-            )
+            # Проверить типы данных.
+            for value, value_type in zip(
+                (dataframe, src_file),
+                (pd.DataFrame, str)
+            ):
+                data_validation.check.value_type(
+                    value = value,
+                    expected_type = value_type
+                )
 
             # Проверить наличие столбцов в таблице.
-            for column_name in columns:
-                data_validation.check.column_exists(
-                    dataframe = dataframe,
-                    column = column_name
-                )
+            match src_file:
+                case "xlsx":
+                    for column_name in xlsx_columns:
+                        data_validation.check.column_exists(
+                            dataframe = dataframe,
+                            column = column_name
+                        )
+                case "json":
+                    for column_name in json_columns:
+                        data_validation.check.column_exists(
+                            dataframe = dataframe,
+                            column = column_name
+                        )
 
             # ! MAIN ALGORITHM
             # Удалить невостребованные столбцы.
-            dataframe: pd.DataFrame = dataframe.drop(
-                labels = columns,
-                axis = 1
-            )
+            match src_file:
+                case "xlsx":
+                    dataframe: pd.DataFrame = dataframe.drop(
+                        labels = xlsx_columns,
+                        axis = 1
+                    )
+                case "json":
+                    dataframe: pd.DataFrame = dataframe.drop(
+                        labels = json_columns,
+                        axis = 1
+                    )
 
             # Вернуть результат.
             return dataframe
@@ -544,7 +570,7 @@ class Feature:
                 return contragent_name
 
             # Применить функцию ко всем записям.
-            dataframe["dealer_name"] = [
+            dataframe.loc[:, "dealer_name"] = [
                 clear_contragent_name(contragent_name = dealer)
 
                 for dealer in dataframe["dealer_name"]
@@ -588,12 +614,12 @@ class Feature:
             # Проверить корректность значения.
             data_validation.check.value_in_range(
                 value = doc_type,
-                in_range = constant.one_c.DOC_ALIAS.keys()
+                in_range = constant.one_c.get_doc_alias().keys()
             )
 
             # ! MAIN ALGORITHM
             # Получить алиас столбца.
-            column_alias: dict[str: str] = constant.one_c.DOC_ALIAS[doc_type]
+            column_alias: dict[str: str] = constant.one_c.get_doc_alias()[doc_type]
 
             # Словарь {"рус.": "англ."} наименований столбцов.
             column_names: dict[str: str] = {
@@ -709,7 +735,7 @@ class Feature:
 
             # ! MAIN ALGORITHM
             # Привести подобные наименования к одному.
-            dataframe["dealer_name"] = (
+            dataframe.loc[:, "dealer_name"] = (
                 dataframe["dealer_name"]
                 .replace(
                     to_replace = constant.contragent.CORRECT_CONTRAGENT_NAMES
