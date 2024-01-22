@@ -37,7 +37,6 @@ def value_type(
         log_critical_message: str = f'Аргумент "{var_name}" ожидает тип данных "{expected_type}".'
         log.critical(msg = log_critical_message)
         raise TypeError(log_critical_message)
-    log.info(msg = f'Тип данных в аргументе "{var_name}" корректный.')
 
 
 def value_in_range(
@@ -64,7 +63,6 @@ def value_in_range(
         log_critical_message: str = f'Значение переменной "{var_name}" вне списка {include_in_name}.'
         log.critical(msg=log_critical_message)
         raise ValueError(log_critical_message)
-    log.info(msg=f'Значение переменной "{var_name}" корректно.')
 
 
 def file_exists(filepath: str) -> None:
@@ -86,7 +84,6 @@ def file_exists(filepath: str) -> None:
         log_critical_message: str = f'Файл по ссылке из переменной "{var_name}" не существует.'
         log.critical(msg = log_critical_message)
         raise FileExistsError(log_critical_message)
-    log.info(msg = f'Файл по ссылке из переменной "{var_name}" существует.')
 
 
 def column_exists(
@@ -105,12 +102,12 @@ def column_exists(
         FileExistsError(f'Файл по ссылке из переменной "{var_name}" не существует.')
     """
 
-    # Получить название переменной в виде строки.
-    dataframe_name: str = f"{dataframe=}".split("=")[0]
-    column_name: str = f"{column=}".split("=")[0]
-
     if column not in dataframe.columns:
+        column_name: str = f"{column=}".split("=")[0]
+
+        # Получить название переменной в виде строки.
+        dataframe_name: str = f"{dataframe=}".split("=")[0]
         log_critical_message: str = f'Столбец "{column_name}" в датафрейме "{dataframe_name}" не существует.'
         log.critical(msg = log_critical_message)
         raise ValueError(log_critical_message)
-    log.info(msg = f'Столбец "{column_name}" в датафрейме "{dataframe_name}" существует.')
+    
