@@ -73,24 +73,24 @@ def check_shop_names(dataframe: pd.DataFrame) -> None:
     shop_names_in_constant = constant.shop.FALSE_SHOP_NAMES.union(constant.shop.TRUE_SHOP_NAMES)
 
     # Множество наименований магазинов, которых нет в константах.
-    shop_names_not_in_constant = set(
+    shop_names_not_in_constant = {
         shop_name
         for shop_name in shop_names_in_dataframe
         if shop_name not in shop_names_in_constant
-    )
+    }
 
     # Множество наименований магазинов, которых нет в WARNING-файле.
-    shop_names_not_in_warning_file = set(
+    shop_names_not_in_warning_file = {
         shop_name
         for shop_name in shop_names_not_in_constant
         if shop_name not in shop_names_in_warning_file
-    )
+    }
 
     # Объединить новое множество неизвестных наименований с данными из WARNING-файла.
     new_set_shop_names: set = shop_names_in_warning_file.union(shop_names_not_in_warning_file)
 
     # Если есть новые наименования магазинов -- сохранить результат в CSV-файл.
-    if len(new_set_shop_names) > 0:
+    if new_set_shop_names:
         (
             pd.DataFrame(
                 data = new_set_shop_names,
