@@ -354,13 +354,15 @@ class Feature:
             return dataframe
 
         @staticmethod
-        def del_unclaimed_columns(dataframe: pd.DataFrame, src_file: str) -> pd.DataFrame:
+        def del_unclaimed_columns(dataframe: pd.DataFrame, doc_type: str, file_type: str) -> pd.DataFrame:
             """
             Notes:
                 Функция принимает на вход датафрейм и удаляет из него невостребованные столбцы.
 
             Args:
                 dataframe (pd.DataFrame): Датафрейм, из которого требуется удалить невостребованные столбцы.
+                doc_type (str): Тип документа.
+                file_type (str): Формат исходного файла (xlsx или json).
 
             Raises:
                 TypeError(f'Аргумент "{var_name}" ожидает тип данных "{var_type}".')
@@ -371,6 +373,8 @@ class Feature:
             """
 
             # ! VARIABLES
+            column_alias: str = constant.one_c.get_doc_alias()[doc_type]
+
             xlsx_columns: list = [
                 "Организация (покупатель) партии",
                 "Цена",
@@ -379,15 +383,15 @@ class Feature:
             ]
 
             json_columns: list = [
-                "stb_price",
-                "stb_sum_nds"
+                f"{column_alias}_price",
+                f"{column_alias}_sum_nds"
             ]
 
             # ! DATA VALIDATION
             # Проверить типы данных.
             for value, value_type in zip(
-                (dataframe, src_file),
-                (pd.DataFrame, str)
+                (dataframe, doc_type, file_type),
+                (pd.DataFrame, str, str)
             ):
                 data_validation.check.value_type(
                     value = value,
@@ -395,33 +399,28 @@ class Feature:
                 )
 
             # Проверить наличие столбцов в таблице.
-            match src_file:
-                case "xlsx":
-                    for column_name in xlsx_columns:
-                        data_validation.check.column_exists(
-                            dataframe = dataframe,
-                            column = column_name
-                        )
-                case "json":
-                    for column_name in json_columns:
-                        data_validation.check.column_exists(
-                            dataframe = dataframe,
-                            column = column_name
-                        )
+            if file_type == "xlsx":
+                for column_name in xlsx_columns:
+                    data_validation.check.column_exists(
+                        dataframe = dataframe,
+                        column = column_name
+                    )
 
             # ! MAIN ALGORITHM
             # Удалить невостребованные столбцы.
-            match src_file:
+            match file_type:
                 case "xlsx":
                     dataframe: pd.DataFrame = dataframe.drop(
                         labels = xlsx_columns,
                         axis = 1
                     )
                 case "json":
-                    dataframe: pd.DataFrame = dataframe.drop(
-                        labels = json_columns,
-                        axis = 1
-                    )
+                    for column_name in json_columns:
+                        if column_name in dataframe.columns:
+                            dataframe: pd.DataFrame = dataframe.drop(
+                                labels = column_name,
+                                axis = 1
+                            )
 
             # Вернуть результат.
             return dataframe
