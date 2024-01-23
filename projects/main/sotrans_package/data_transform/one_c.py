@@ -94,6 +94,7 @@ class BatchMovement:
         # ! MAIN ALGORITHM
         # Добавить данные по документу движения.
         if doc_type in {"start_balance", "end_balance", "transit_balance"}:
+            file_month: str = f"0{file_month}" if 0 < file_month < 10 else f"{file_month}"
             data_pattern: str = f"№00000000 от 01.{file_month}.{file_year} 00:00:00"
 
             match doc_type:
@@ -109,7 +110,7 @@ class BatchMovement:
         return dataframe
 
     @staticmethod
-    def feature_document_data(dataframe: pd.DataFrame, src_file: str) -> pd.DataFrame:
+    def feature_document_data(dataframe: pd.DataFrame, file_type: str) -> pd.DataFrame:
         """
         Notes:
             Функция принимает на вход датафрейм и рассчитывает показатели по документу движения/партии:
@@ -117,7 +118,7 @@ class BatchMovement:
 
         Args:
             dataframe (pd.DataFrame): Датафрейм, в котором требуется вывести новые данные.
-            src_file (str): Формат исходного файла. От него зависит, какие шаги будут применены.
+            file_type (str): Формат исходного файла. От него зависит, какие шаги будут применены.
 
         Raises:
             TypeError(f'Аргумент "{var_name}" ожидает тип данных "{var_type}".')
@@ -146,7 +147,7 @@ class BatchMovement:
             .ffill()
         )
 
-        match src_file:
+        match file_type:
             case "xlsx":
                 for column_name in ("document_movement", "document_batch"):
                     # Вывести тип документа.
@@ -157,20 +158,17 @@ class BatchMovement:
 
                     # Вывести номер документа.
                     dataframe[f"{column_name}_number"] = [
-                        elements.split()[-4]
-                        for elements in dataframe[column_name]
+                        elements.split()[-4] for elements in dataframe[column_name]
                     ]
 
                     # Вывести дату документа.
                     dataframe[f"{column_name}_date"] = [
-                        elements.split()[-2]
-                        for elements in dataframe[column_name]
+                        elements.split()[-2] for elements in dataframe[column_name]
                     ]
 
                     # Вывести время документа.
                     dataframe[f"{column_name}_time"] = [
-                        elements.split()[-1]
-                        for elements in dataframe[column_name]
+                        elements.split()[-1] for elements in dataframe[column_name]
                     ]
 
                     # Вывести дату документа с начала месяца.
@@ -180,24 +178,16 @@ class BatchMovement:
                     ]
 
             case "json":
-                for column_name in (
-                    "document_movement",
-                    "document_batch"
-                ):
+                for column_name in ("document_movement", "document_batch"):
                     # Удалить "t" из datetime.
                     dataframe[column_name] = [
-                        (
-                            value
-                            .replace("t", " ")
-                            .replace("-", ".")
-                        )
+                        (value.replace("t", " ").replace("-", "."))
                         for value in dataframe[column_name]
                     ]
 
                     # Вывести список элементов документа.
                     dataframe[f"{column_name}_split"] = [
-                        elements.split()
-                        for elements in dataframe[column_name]
+                        elements.split() for elements in dataframe[column_name]
                     ]
 
                     # Вывести тип документа.
@@ -212,19 +202,33 @@ class BatchMovement:
                         for elements in dataframe[f"{column_name}_split"]
                     ]
 
-                    if column_name == "document_movement":
-                        # Вывести дату документа.
-                        dataframe[f"{column_name}_date"] = [
-                            dt.datetime.strptime(elements[-2], "%Y.%m.%d")
-                            for elements in dataframe[f"{column_name}_split"]
-                        ]
+                    # Вывести дату документа.
+                    match column_name:
+                        case "document_batch":
+                            try:
+                                dataframe[f"{column_name}_date"] = [
+                                    dt.datetime.strptime(elements[-2], "%d.%m.%Y").date()
+                                    for elements in dataframe[f"{column_name}_split"]
+                                ]
 
-                    elif column_name == "document_batch":
-                        # Вывести дату документа.
-                        dataframe[f"{column_name}_date"] = [
-                            dt.datetime.strptime(elements[-2], "%d.%m.%Y")
-                            for elements in dataframe[f"{column_name}_split"]
-                        ]
+                            except ValueError:
+                                dataframe[f"{column_name}_date"] = [
+                                    dt.datetime.strptime(elements[-2], "%Y.%m.%d").date()
+                                    for elements in dataframe[f"{column_name}_split"]
+                                ]
+
+                        case "document_movement":
+                            try:
+                                dataframe[f"{column_name}_date"] = [
+                                    dt.datetime.strptime(elements[-2], "%d.%m.%Y").date()
+                                    for elements in dataframe[f"{column_name}_split"]
+                                ]
+
+                            except ValueError:
+                                dataframe[f"{column_name}_date"] = [
+                                    dt.datetime.strptime(elements[-2], "%Y.%m.%d").date()
+                                    for elements in dataframe[f"{column_name}_split"]
+                                ]
 
                     # Вывести время документа.
                     dataframe[f"{column_name}_time"] = [
@@ -233,13 +237,13 @@ class BatchMovement:
                     ]
 
                     # Вывести дату документа с начала месяца.
-                    dataframe[f"{column_name}_start_of_month"] = [
+                    dataframe.loc[:, f"{column_name}_start_of_month"] = [
                         date.replace(day = 1)
                         for date in dataframe[f"{column_name}_date"]
                     ]
 
                     # Удалить временный столбец
-                    dataframe = dataframe.drop(columns = f"{column_name}_split")
+                    dataframe = dataframe.drop(columns=f"{column_name}_split")
 
         # Вернуть результат.
         return dataframe
