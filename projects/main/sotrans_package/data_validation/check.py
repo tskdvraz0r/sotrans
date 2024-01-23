@@ -103,11 +103,6 @@ def column_exists(
     """
 
     if column not in dataframe.columns:
-        column_name: str = f"{column=}".split("=")[0]
-
-        # Получить название переменной в виде строки.
-        dataframe_name: str = f"{dataframe=}".split("=")[0]
-        log_critical_message: str = f'Столбец "{column_name}" в датафрейме "{dataframe_name}" не существует.'
+        log_critical_message: str = f'Столбец "{column}" в датафрейме не существует.'
         log.critical(msg = log_critical_message)
         raise ValueError(log_critical_message)
-    
