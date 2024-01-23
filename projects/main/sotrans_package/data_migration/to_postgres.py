@@ -16,7 +16,9 @@ def save_data(
     doc_year: int,
     db_schema: str,
 ) -> None:
-    """Сохранение дата фрейма в PostgreSQL базу.
+    """
+    Notes:
+        Сохранение датафрейма в базу PostgreSQL.
 
     Args:
         dataframe (pd.DataFrame): Наименование дата фрейма
@@ -26,9 +28,16 @@ def save_data(
         db_schema (str): Наименование "схемы" SQL
     """
 
+    # ! VARIABLES
+    sql_connection: str = database.postgresql.get_database_url(db_name = "one_c")
+
+    # ! DATA VALIDATION
+    pass
+
+    # ! MAIN ALGORITHM
     dataframe.to_sql(
         name = f"{doc_year}_{doc_month}_{doc_type}",
-        con = sa.create_engine(url = database.postgresql.get_database_url(db_name = "one_c")),
+        con = sa.create_engine(url = sql_connection),
         schema = db_schema,
         if_exists = "replace",
         index = False
