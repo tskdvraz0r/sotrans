@@ -29,11 +29,11 @@ class DataValidation:
             expected_type (typing.Any): Ожидаемый тип данных.
 
         Raises:
-            TypeError: f"Аргумент ожидает тип данных {expected_type}"
+            TypeError: f"Тип переданныых данных не соответствует ожидаемому: {expected_type}"
         """
         
         if not isinstance(value, expected_type):
-            raise TypeError(f"Значение не соответствует типу данных {expected_type}")
+            raise TypeError(f"Тип переданныых данных не соответствует ожидаемому: {expected_type}")
     
     @staticmethod
     def value_in_range(
