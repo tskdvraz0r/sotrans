@@ -1,3 +1,11 @@
+import sys
+import string
+import pandas as pd
+
+sys.path.insert(0, r"C:\Users\d.zakharchenko\Desktop\new_structure\sotrans\projects\_main\sotrans_package")
+from data_analysis.data_validation import DataValidation
+
+
 class DataTransformation:
     """
     Notes:
@@ -91,23 +99,10 @@ class DataTransformation:
                 Методы обработки признаков с ошибками и опечатками.
 
             Attributes:
-                None
+                pass
 
             Methods:
-                change_string_register()
-                    Функция принимает на вход датафрейм, кортеж столбцов и регистр, который применяет ко всем записям
-                    в указанных столбцах.
-
-                clear_product_catalog_number()
-                    Функция принимает на вход датафрейм и тип очистки: "origin" | "sotrans".
-                    Очищает записи в столбце "product_catalog_number" от лишних символов (пунктуационных) и сохраняет
-                    данные в новый столбец "product_article_number".
-
-                del_false_substring_in_contragent()
-                    Функция принимает на вход датафрейм и очищает наименования "контрагента" от некорректных подстрок.
-
-                rename_columns()
-                    Функция принимает на вход датафрейм и тип документа, и переименовывает рус. наименования на англ.
+                pass
             """
             
             pass
@@ -119,22 +114,142 @@ class DataTransformation:
                 Методы обработки признаков с недопустимыми значениями.
 
             Attributes:
-                None
+                pass
 
             Methods:
-                del_not_true_shop_names()
-                    Функция принимает на вход датафрейм и удаляет все записи со складами/магазинами, не входящими
-                    в "корректный" список.
-
-                del_total_row()
-                    Функция принимает на вход датафрейм и удаляет из него строку "Итог".
-
-                del_unclaimed_columns()
-                    Функция принимает на вход датафрейм и удаляет из него невостребованные столбцы.
+                pass
             """
             
-            pass
-        
+            @staticmethod
+            def clear_product_catalog_number(
+                    series: pd.Series,
+                    clearing_method: str
+            ) -> pd.Series:
+                """
+                Notes:
+                    Функция принимает на вход pandas серию и тип очистки: "origin" | "sotrans".
+                    Очищает значения от символов пунктуации и алиаса бренда (в методе sotrans).
+
+                    В зависимости от выбранного типа, отличается логика очистки:
+                        - origin - очистка от символов пунктуации.
+                        - sotrans - очистка от символов пунктуации с предварительным удалением алиаса бренда "_brand".
+
+                Args:
+                    series (pd.Series): Pandas серия, в которой требуется очистить значения от 
+                    символов пунктуации.
+                    clearing_method (str): Метод очистки: "origin" | "sotrans".
+
+                Raises:
+                    TypeError: f"Тип переданныых данных не соответствует ожидаемому: {expected_type}")
+
+                Returns:
+                    (pd.DataFrame): Датафрейм со столбцом "product_article_number" (очищенным номером по каталогу).
+                """
+                
+                # DATA VALIDATION
+                for value, expected_type in zip(
+                        (series, clearing_method),
+                        (pd.Series, str)
+                ):
+                    DataValidation.value_type(
+                        value=value,
+                        expected_type=expected_type
+                    )
+                
+                # FUNCTIONS
+                def origin_method(
+                        product_article_number: str
+                ) -> str:
+                    """
+                    Notes:
+                        Функция принимает на вход номер по каталогу/артикул и производит приведение 
+                        к верхнему регистру и очистку от знаков пунктуации.
+
+                    Args:
+                        product_catalog_number (str): Номер по каталогу/артикул.
+                    
+                    Raises:
+                        TypeError: f"Тип переданныых данных не соответствует ожидаемому: {expected_type}")
+
+                    Returns:
+                        str: Номер, очищенный от знаков пунктуации.
+                    """
+                    
+                    # DATA VALIDATION
+                    DataValidation.value_type(
+                        value=product_article_number,
+                        expected_type=str
+                    )
+
+                    # MAIN ALGORITHM
+                    # Очистить от символов пунктуации;
+                    for symbol in f"{string.punctuation} ":
+                        product_article_number: str = (
+                            product_article_number
+                            .replace(symbol, "")
+                            .strip()
+                        )
+
+                    # Возврат результата;
+                    return product_article_number
+
+                def sotrans_method(
+                        product_catalog_number: str
+                ) -> str:
+                    """
+                    Notes:
+                        Функция принимает на вход номер по каталогу. Производит приведение 
+                        к верхнему регистру, очистку от знаков пунктуации и алиаса бренда.
+                    
+                    Raises:
+                        TypeError: f"Тип переданныых данных не соответствует ожидаемому: {expected_type}")
+
+                    Args:
+                        product_catalog_number (str): Номер по каталогу.
+
+                    Returns:
+                        str: Номер, очищенный от знаков пунктуации.
+                    """
+                    
+                    # DATA VALIDATION
+                    DataValidation.value_type(
+                        value=product_catalog_number,
+                        expected_type=str
+                    )
+
+                    # MAIN ALGORITHM
+                    # Очистить от алиаса бренда и символов пунктуации;
+                    for symbol in f"{string.punctuation} ":
+                        product_catalog_number: str = (
+                            product_catalog_number
+                            .split("_", -1)[0]
+                            .replace(symbol, "")
+                            .strip()
+                        )
+
+                    # Возврат результата;
+                    return product_catalog_number
+                
+                # MAIN ALGORITHM
+                match clearing_method:
+                    case "origin":
+                        series = pd.Series(
+                            data=[
+                                origin_method(product_article_number=value)
+                                for value in series
+                            ]
+                        )
+                    
+                    case "sotrans":
+                        series = pd.Series(
+                            data=[
+                                sotrans_method(product_catalog_number=value)
+                                for value in series
+                            ]
+                        )
+
+                # Возврат результата;
+                return series
         
         class Missed:
             """
@@ -142,23 +257,10 @@ class DataTransformation:
                 Методы обработки признаков с отсутствующими значениями.
 
             Attributes:
-                None
+                pass
 
             Methods:
-                del_nan_rows()
-                    Функция принимает на вход датафрейм и удаляет nan строки из столбцов (product_catalog_name,
-                    {alias}_count).
-
-                fill_nan_down()
-                    Функция принимает на вход датафрейм и заполняет пропуски "вниз" в столбцах ("shop_name",
-                    "document_batch", "document_movement", "dealer_name").
-
-                fill_nan_in_dealer_brand()
-                    Функция принимает на вход датафрейм и заполняет "заглушкой" пропуски в столбцах "дилер" и "бренд".
-
-                replace_nan_to_zero()
-                    Функция принимает на вход датафрейм и тип документа.
-                    В столбцах "{alias}_sum_rub" и "{alias}_sum_eur" заменяет nan на 0.
+                pass
             """
             
             pass
@@ -170,20 +272,13 @@ class DataTransformation:
                 Методы обработки признаков с многозначными значениями.
 
             Examples:
-                "meklas group (connect)": "mekpa group (connect)",
-                "mekpa otomotiv ith. ihr. san. tic. ltd.": "mekpa group (connect)",
+                pass
 
             Attributes:
                 None
 
             Methods:
-                replace_shop_names()
-                    Функция принимает на вход датафрейм и переименовывает магазины в столбце "shop_names".
-                    По разным причинам наименования складов / магазинов могли измениться: закрытие, ошибочно заведённое.
-
-                replace_contragent_names()
-                    Функция принимает на вход датафрейм, в котором требуется привести подобные названия "контрагентов" к
-                    одному.
+                pass
             """
             
             pass
