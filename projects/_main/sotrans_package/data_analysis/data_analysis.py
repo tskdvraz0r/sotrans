@@ -99,7 +99,7 @@ class DataAnalysis:
             pass
         """
         
-        class MOCT:
+        class MeasureCentralTrend:
             """
             Notes:
                 - Measures of the Central Trend (Меры центральной тенденции): ...
@@ -145,7 +145,7 @@ class DataAnalysis:
             def outlier(cls):
                 pass
         
-        class MOV:
+        class MeasureVariability:
             """
             Notes:
                 - Measures of Variability (Меры изменчивости): ...
