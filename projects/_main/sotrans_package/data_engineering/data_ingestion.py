@@ -123,7 +123,7 @@ class DataIngestion:
                     schema=SQL_SCHEMA
                 )
                 
-                # Оставить только те бренды, который нет в MySQL;
+                # Оставить только те бренды, которых нет в MySQL;
                 df_brands: pd.DataFrame = (
                     df_brands[~df_brands["brand_name"].isin(values=sql_brand["brand_name"])]
                 )
