@@ -139,7 +139,7 @@ class DataIngestion:
                 
                 # Если есть новые записи, их требуется предварительно "обработать" перед заливкой в базу;
                 if processed:
-                    dataframe.to_sql(
+                    df_shop.to_sql(
                         name=SQL_SHOP_TABLE_NAME,
                         con=SQL_SHOP_CONNECTION,
                         schema=SQL_SHOP_SCHEMA,
@@ -228,7 +228,7 @@ class DataIngestion:
                 
                 # Если есть новые записи, их требуется предварительно "обработать" перед заливкой в базу;
                 if processed:
-                    dataframe.to_sql(
+                    df_dealer.to_sql(
                         name=SQL_DEALER_TABLE_NAME,
                         con=SQL_DEALER_CONNECTION,
                         schema=SQL_DEALER_SCHEMA,
@@ -239,7 +239,7 @@ class DataIngestion:
                 
                 else:
                     print(
-                        f"Количество новых магазинов: {len(df_dealer)}",
+                        f"Количество новых поставщиков: {len(df_dealer)}",
                         df_dealer["name"],sep="\n"
                     )
             
@@ -317,7 +317,7 @@ class DataIngestion:
                 
                 # Если есть новые записи, их требуется предварительно "обработать" перед заливкой в базу;
                 if processed:
-                    dataframe.to_sql(
+                    df_brand.to_sql(
                         name=SQL_BRAND_TABLE_NAME,
                         con=SQL_BRAND_CONNECTION,
                         schema=SQL_BRAND_SCHEMA,
@@ -328,7 +328,7 @@ class DataIngestion:
                 
                 else:
                     print(
-                        f"Количество новых магазинов: {len(df_brand)}",
+                        f"Количество новых брендов: {len(df_brand)}",
                         df_brand["name"],sep="\n"
                     )
 
@@ -354,12 +354,8 @@ class DataIngestion:
                 
                 Attributes:
                     SQL_PRODUCT_CONNECTION (sa.Connection): Подключение к базе данных.
-                    SQL_PRODUCT_SCHEMA (str): Наименование схемы.
-                    SQL_PRODUCT_TABLE_NAME (str): Наименование таблицы.
-                    
                     SQL_BRAND_CONNECTION (sa.Connection): Подключение к базе данных.
-                    SQL_BRAND_SCHEMA (str): Наименование схемы.
-                    SQL_BRAND_TABLE_NAME (str): Наименование таблицы.
+                    SQL_TEMP_CONNECTION (sa.Connection): Подключение к базе данных.
                     
                 Args:
                     dataframe (pd.DataFrame): Датафрейм с данными отчёта 1С.
@@ -370,14 +366,14 @@ class DataIngestion:
                 SQL_PRODUCT_CONNECTION: sa.Connection = sa.create_engine(
                     url=f"mysql+pymysql://{_mysql.LOGIN}:{_mysql.PASSWORD}@localhost/product"
                 ).connect()
-                SQL_PRODUCT_SCHEMA: str = "product"
-                SQL_PRODUCT_TABLE_NAME: str = "product"
                 
                 SQL_BRAND_CONNECTION: sa.Connection = sa.create_engine(
                     url=f"mysql+pymysql://{_mysql.LOGIN}:{_mysql.PASSWORD}@localhost/brand"
                 ).connect()
-                SQL_BRAND_SCHEMA: str = "brand"
-                SQL_BRAND_TABLE_NAME: str = "brand"
+                
+                SQL_TEMP_CONNECTION: sa.Connection = sa.create_engine(
+                    url=f"mysql+pymysql://{_mysql.LOGIN}:{_mysql.PASSWORD}@localhost/_temp"
+                ).connect()
                 
                 # DATA VALIDATION
                 DataValidation.value_type(
@@ -388,16 +384,16 @@ class DataIngestion:
                 # EXTRACT SOURCE DATA
                 # Получить данные по товарам из MySQL;
                 sql_product: pd.DataFrame = pd.read_sql_table(
-                    table_name=SQL_PRODUCT_TABLE_NAME,
+                    table_name="product",
                     con=SQL_PRODUCT_CONNECTION,
-                    schema=SQL_PRODUCT_SCHEMA
+                    schema="product"
                 )
                 
                 # Получить данные по брендам из MySQL;
                 sql_brand: pd.DataFrame = pd.read_sql_table(
-                    table_name=SQL_BRAND_TABLE_NAME,
+                    table_name="brand",
                     con=SQL_BRAND_CONNECTION,
-                    schema=SQL_BRAND_SCHEMA
+                    schema="brand"
                 )
                 
                 # MAIN ALGORITHM
@@ -469,9 +465,9 @@ class DataIngestion:
                     
                     # Добавить новые данные в MySQL после обработки;
                     new_sku.to_sql(
-                        name=SQL_PRODUCT_TABLE_NAME,
+                        name="product",
                         con=SQL_PRODUCT_CONNECTION,
-                        schema=SQL_PRODUCT_SCHEMA,
+                        schema="product",
                         if_exists="append",
                         index=False,
                         chunksize=100
@@ -480,8 +476,8 @@ class DataIngestion:
                     # Обновить временную таблицу, для замены данных.
                     sku_to_replace.to_sql(
                         name="temp_product",
-                        con=SQL_PRODUCT_CONNECTION,
-                        schema=SQL_PRODUCT_SCHEMA,
+                        con=SQL_TEMP_CONNECTION,
+                        schema="_temp",
                         if_exists="append",
                         index=False,
                         chunksize=100
