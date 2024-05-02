@@ -4,5 +4,6 @@
 apps/
 __pycache__/
 _settings/
+logs/
 
 # FILES
