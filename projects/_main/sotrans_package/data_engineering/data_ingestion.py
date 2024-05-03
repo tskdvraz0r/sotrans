@@ -104,7 +104,7 @@ class DataIngestion:
                 # ! ATTRIBUTES
                 no_data: str = "_нет данных"
                 sql_batch_connection: sa.Connection = (
-                    MySQL.get_database_url(name="document")
+                    sa.create_engine(url=MySQL.get_database_url(name="document")).connect()
                 )
                 sql_batch_schema: str = "document"
                 sql_batch_table_name: str = "batch"
@@ -262,8 +262,9 @@ class DataIngestion:
 
                 else:
                     print(
-                        f"Количество новых магазинов: {len(df_doc_batch)}",
+                        f"Количество новых документов партий: {len(df_doc_batch)}",
                         df_doc_batch,
+                        "",
                         sep="\n",
                     )
                 
@@ -297,7 +298,7 @@ class DataIngestion:
 
                 # ! ATTRIBUTES
                 sql_shop_connection: sa.Connection = (
-                    MySQL.get_database_url(name="warehouse_and_shop")
+                    sa.create_engine(url=MySQL.get_database_url(name="warehouse_and_shop")).connect()
                 )
                 sql_shop_schema: str = "warehouse_and_shop"
                 sql_shop_table_name: str = "warehouse_and_shop"
@@ -349,7 +350,8 @@ class DataIngestion:
                 else:
                     print(
                         f"Количество новых магазинов: {len(df_shop)}",
-                        df_shop["name"],
+                        df_shop,
+                        "",
                         sep="\n",
                     )
 
@@ -382,7 +384,7 @@ class DataIngestion:
 
                 # ? ATTRIBUTES
                 sql_dealer_connection: sa.Connection = (
-                    MySQL.get_database_url(name="dealer")
+                    sa.create_engine(url=MySQL.get_database_url(name="dealer")).connect()
                 )
                 sql_dealer_schema: str = "dealer"
                 sql_dealer_table_name: str = "dealer"
@@ -434,7 +436,8 @@ class DataIngestion:
                 else:
                     print(
                         f"Количество новых поставщиков: {len(df_dealer)}",
-                        df_dealer["name"],
+                        df_dealer,
+                        "",
                         sep="\n",
                     )
 
@@ -467,7 +470,7 @@ class DataIngestion:
 
                 # ? ATTRIBUTES
                 sql_brand_connection: sa.Connection = (
-                    MySQL.get_database_url(name="brand")
+                    sa.create_engine(url=MySQL.get_database_url(name="brand")).connect()
                 )
                 sql_brand_schema: str = "brand"
                 sql_brand_table_name: str = "brand"
@@ -513,7 +516,8 @@ class DataIngestion:
                 else:
                     print(
                         f"Количество новых брендов: {len(df_brand)}",
-                        df_brand["name"],
+                        df_brand,
+                        "",
                         sep="\n",
                     )
 
@@ -547,15 +551,15 @@ class DataIngestion:
 
                 # ? ATTRIBUTES
                 sql_product_connection: sa.Connection = (
-                    MySQL.get_database_url(name="product")
+                    sa.create_engine(url=MySQL.get_database_url(name="product")).connect()
                 )
 
                 sql_brand_connection: sa.Connection = (
-                    MySQL.get_database_url(name="brand")
+                    sa.create_engine(url=MySQL.get_database_url(name="brand")).connect()
                 )
 
                 sql_temp_connection: sa.Connection = (
-                    MySQL.get_database_url(name="_temp")
+                    sa.create_engine(url=MySQL.get_database_url(name="_temp")).connect()
                 )
                 
                 # ! DATA VALIDATION
@@ -685,18 +689,20 @@ class DataIngestion:
                     )
 
                     # Выполнение SQL-запроса и коммит;
-                    sql_product_connection.execute(sql_update_name)
+                    sql_product_connection.execute(statement=sql_update_name)
                     sql_product_connection.commit()
 
                 else:
                     print(
                         f"Количество новых SKU: {len(new_sku)}",
-                        new_sku["name"],
+                        new_sku,
+                        "",
                         sep="\n",
                     )
                     print()
                     print(
                         f"Количество SKU с новыми наименованиями: {len(sku_to_replace)}",
-                        sku_to_replace["name"],
+                        sku_to_replace,
+                        "",
                         sep="\n",
                     )
