@@ -1,9 +1,11 @@
 # FOLDERS
 .venv/
 .vscode/
+
 __pycache__/
-_settings/
 _create_func/
+
+config/
 apps/
 logs/
 scripts/
