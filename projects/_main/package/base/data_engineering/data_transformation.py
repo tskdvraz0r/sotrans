@@ -6,9 +6,9 @@ sys.path.insert(
     0,
     r"C:\Users\d.zakharchenko\Desktop\new_structure\sotrans\projects\_main\sotrans_package",
 )
-from _settings._constant._shop import Shop
-from _settings._constant._dealer import Dealer
-from _settings._constant._brand import Brand
+from config.constant.shop import Shop
+from config.constant.dealer import Dealer
+from config.constant.brand import Brand
 from data_analysis.data_validation import DataValidation
 
 

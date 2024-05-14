@@ -9,7 +9,7 @@ sys.path.insert(
     0,
     r"C:\Users\d.zakharchenko\Desktop\new_structure\sotrans\projects\_main\sotrans_package",
 )
-from _settings._database._mysql import MySQL
+from config.database.mysql import MySQL
 from data_analysis.data_validation import DataValidation
 
 
@@ -113,7 +113,7 @@ class DataIngestion:
                 # Загрузка данных по документам партий;
                 sql_doc_batch: pd.DataFrame = (
                     pd.read_sql_table(
-                        table_name="batch",
+                        table_name=sql_batch_table_name,
                         con=sql_batch_connection,
                         schema=sql_batch_schema
                     )
@@ -145,17 +145,6 @@ class DataIngestion:
                     )
                 
                 # ! MAIN ALGORITHM
-                # Формирование объединённого столбца;
-                sql_doc_batch["document_batch"] = [
-                    f"{document} {number} от {date.date()} {time}"
-                    for document, number, date, time in zip(
-                        sql_doc_batch["document"],
-                        sql_doc_batch["number"],
-                        sql_doc_batch["date"],
-                        sql_doc_batch["time"]
-                    )
-                ]
-                
                 # Формироваание датафрейма с документами движения партий товаров;
                 df_doc_batch: pd.DataFrame = (
                     pd.DataFrame(
@@ -240,15 +229,6 @@ class DataIngestion:
                     df_doc_batch[~df_doc_batch["document_batch"].isin(values=sql_doc_batch["document_batch"])]
                 )
                 
-                # Удаление невостребованного столбца;
-                df_doc_batch: pd.DataFrame = (
-                    df_doc_batch
-                    .drop(
-                        labels="document_batch",
-                        axis=1
-                    )
-                )
-                
                 # Если есть новые записи, их требуется предварительно "обработать" перед заливкой в базу;
                 if processed:
                     df_doc_batch.to_sql(
@@ -268,6 +248,263 @@ class DataIngestion:
                         sep="\n",
                     )
                 
+
+
+            @staticmethod
+            def extract_document_movement(
+                    dataframe: pd.DataFrame,
+                    file_day: int,
+                    file_month: int,
+                    file_year: int,
+                    doc_type: str,
+                    processed: bool = False
+            ) -> None:
+                """
+                Notes:
+                    Метод принимает на вход датафрейм одного из типов отчётов 1С:
+                        - Начальный остаток
+                        - Приход
+                        - Расход
+                        - Конечный остаток
+
+                    Вычленяет данные с документами партий и сверяет с текущими данными в MySQL.
+                    Если есть новые данные: выводит список для ознакомления и предобработки,
+                    перед добавлением в базу.
+
+                Attributes:
+                    sql_movement_connection (sa.Connection): Подключение к базе данных.
+                    sql_movement_schema (str): Наименование схемы.
+                    sql_movement_table_name (str): Наименование таблицы.
+
+                Args:
+                    dataframe (pd.DataFrame): Датафрейм с данными отчёта 1С.
+                    doc_type (str): Тип документа.
+                    processed (bool, optional): Статус предобработки новых данных. По умолчанию False.
+                """
+                
+                # ! ATTRIBUTES
+                no_data: str = "_нет данных"
+                sql_movement_connection: sa.Connection = (
+                    sa.create_engine(url=MySQL.get_database_url(name="document")).connect()
+                )
+                sql_movement_schema: str = "document"
+                sql_movement_table_name: str = "movement"
+                
+                # ! EXTRACT SOURCE DATA
+                # Загрузка данных по документам партий;
+                # Загрузка данных по документам движения;
+                sql_doc_movement: pd.DataFrame = (
+                    pd.read_sql_table(
+                        table_name=sql_movement_table_name,
+                        con=sql_movement_connection,
+                        schema=sql_movement_schema
+                    )
+                )
+                
+                # ! DATA VALIDATION
+                for value, expected_type in zip(
+                    (dataframe, file_day, file_month, file_year, doc_type),
+                    (pd.DataFrame, int, int, int, str)
+                ):
+                    (
+                        DataValidation
+                        .value_type(
+                            value=value,
+                            expected_type=expected_type
+                        )
+                    )
+                
+                for value, in_range in zip(
+                    (file_month, file_year),
+                    (range(1,13), range(2014, 2025))
+                ):
+                    (
+                        DataValidation
+                        .value_in_range(
+                            value=value,
+                            in_range=in_range
+                        )
+                    )
+                
+                # ! MAIN ALGORITHM
+                # Формироваание датафрейма с документами движения партий товаров;
+                df_doc_movement: pd.DataFrame = (
+                    pd.DataFrame(
+                        data=dataframe["document_movement"].drop_duplicates(
+                            ignore_index=True
+                        ),
+                        columns=["document_movement"]
+                    )
+                )
+                logging.info(msg="Сформирован датафрейм с документами движения партий товаров;")
+                
+                if doc_type in ("stb", "trb"):
+                    # Формирование столбец с наименованием документов;
+                    df_doc_movement["document"] = [
+                        " ".join(value.rsplit(" от ", 1)[0].split()[:-1])
+                        if value != no_data
+                        else no_data
+                        for value in df_doc_movement["document_movement"]
+                    ]
+                    logging.info(msg="Сформирован столбец с наименованием документов;")
+                    
+                    # Формирование столбца с номерами документов;
+                    df_doc_movement["number"] = [
+                        value.rsplit(" от ", 1)[0].split()[-1]
+                        if value != no_data
+                        else "№00000000"
+                        for value in df_doc_movement["document_movement"]
+                    ]
+                    logging.info(msg="Сформирован столбец с номерами документов;")
+                    
+                    # Формирование столбец с датами документов;
+                    df_doc_movement["date"] = [
+                        value.rsplit(" от ", 1)[1].split("t")[0]
+                        if value != no_data
+                        else f"{str(file_day).rjust(2, "0")}.{str(file_month).rjust(2, "0")}.{file_year}"
+                        for value in df_doc_movement["document_movement"]
+                    ]
+                    logging.info(msg="Сформирован столбец с датами документов;")
+                    
+                    # Формирование столбец с временем документов;
+                    df_doc_movement["time"] = [
+                        value.rsplit(" от ", 1)[1].split("t")[1]
+                        if value != no_data
+                        else "00:00:00"
+                        for value in df_doc_movement["document_movement"]
+                    ]
+                    logging.info(msg="Сформирован столбец с временем документов;")
+                    
+                    # Удаление невостребованного столбца;
+                    df_doc_movement: pd.DataFrame = (
+                        df_doc_movement
+                        .drop(
+                            labels="document_movement",
+                            axis=1
+                        )
+                    )
+                    
+                    # Преобразование дат;
+                    df_doc_movement["date"] = [
+                        dt.datetime.strptime(value, "%Y-%m-%d").date()
+                        for value in df_doc_movement["date"]
+                    ]
+                    
+                    # Преобрзование времени;
+                    df_doc_movement["time"] = [
+                        dt.datetime.strptime(value, "%H:%M:%S").time()
+                        for value in df_doc_movement["time"]
+                    ]
+                    
+                    # Формирование объединённого столбца;
+                    df_doc_movement["document_movement"] = [
+                        f"{document} {number} от {date} {time}"
+                        for document, number, date, time in zip(
+                            df_doc_movement["document"],
+                            df_doc_movement["number"],
+                            df_doc_movement["date"],
+                            df_doc_movement["time"]
+                        )
+                    ]
+                    
+                    # Фильтрация существующих данных в MySQL;
+                    df_doc_movement: pd.DataFrame = (
+                        df_doc_movement[~df_doc_movement["document_movement"].isin(values=sql_doc_movement["document_movement"])]
+                    )
+                    
+                else:
+                    # Формирование столбец с наименованием документов;
+                    df_doc_movement["document"] = [
+                        " ".join(value.rsplit(" от ", 1)[0].split()[:-1])
+                        if value != no_data
+                        else no_data
+                        for value in df_doc_movement["document_movement"]
+                    ]
+                    logging.info(msg="Сформирован столбец с наименованием документов;")
+                    
+                    # Формирование столбца с номерами документов;
+                    df_doc_movement["number"] = [
+                        value.rsplit(" от ", 1)[0].split()[-1]
+                        if value != no_data
+                        else "№00000000"
+                        for value in df_doc_movement["document_movement"]
+                    ]
+                    logging.info(msg="Сформирован столбец с номерами документов;")
+                    
+                    # Формирование столбец с датами документов;
+                    df_doc_movement["date"] = [
+                        value.rsplit(" от ", 1)[1].split()[0]
+                        if value != no_data
+                        else f"{str(file_day).rjust(2, "0")}.{str(file_month).rjust(2, "0")}.{file_year}"
+                        for value in df_doc_movement["document_movement"]
+                    ]
+                    logging.info(msg="Сформирован столбец с датами документов;")
+                    
+                    # Формирование столбец с временем документов;
+                    df_doc_movement["time"] = [
+                        value.rsplit(" от ", 1)[1].split()[1]
+                        if value != no_data
+                        else "00:00:00"
+                        for value in df_doc_movement["document_movement"]
+                    ]
+                    logging.info(msg="Сформирован столбец с временем документов;")
+                    
+                    # Удаление невостребованного столбца;
+                    df_doc_movement: pd.DataFrame = (
+                        df_doc_movement
+                        .drop(
+                            labels="document_movement",
+                            axis=1
+                        )
+                    )
+                    
+                    # Преобразование дат;
+                    df_doc_movement["date"] = [
+                        dt.datetime.strptime(value, "%d.%m.%Y").date()
+                        for value in df_doc_movement["date"]
+                    ]
+                    
+                    # Преобрзование времени;
+                    df_doc_movement["time"] = [
+                        dt.datetime.strptime(value, "%H:%M:%S").time()
+                        for value in df_doc_movement["time"]
+                    ]
+                    
+                    # Формирование объединённого столбца;
+                    df_doc_movement["document_movement"] = [
+                        f"{document} {number} от {date} {time}"
+                        for document, number, date, time in zip(
+                            df_doc_movement["document"],
+                            df_doc_movement["number"],
+                            df_doc_movement["date"],
+                            df_doc_movement["time"]
+                        )
+                    ]
+                    
+                    # Фильтрация существующих данных в MySQL;
+                    df_doc_movement: pd.DataFrame = (
+                        df_doc_movement[~df_doc_movement["document_movement"].isin(values=sql_doc_movement["document_movement"].unique())]
+                    )
+                    
+                # Если есть новые записи, их требуется предварительно "обработать" перед заливкой в базу;
+                if processed:
+                    df_doc_movement.to_sql(
+                        name=sql_movement_table_name,
+                        con=sql_movement_connection,
+                        schema=sql_movement_schema,
+                        if_exists="append",
+                        index=False,
+                        chunksize=100,
+                    )
+
+                else:
+                    print(
+                        f"Количество новых документов движения: {len(df_doc_movement)}",
+                        df_doc_movement,
+                        "",
+                        sep="\n",
+                    )
+
 
             @staticmethod
             def extract_shop(
@@ -355,6 +592,7 @@ class DataIngestion:
                         sep="\n",
                     )
 
+
             @staticmethod
             def extract_dealer(
                     dataframe: pd.DataFrame,
@@ -441,6 +679,7 @@ class DataIngestion:
                         sep="\n",
                     )
 
+
             @staticmethod
             def extract_brand(
                     dataframe: pd.DataFrame,
@@ -520,6 +759,7 @@ class DataIngestion:
                         "",
                         sep="\n",
                     )
+
 
             @staticmethod
             def extract_product(
@@ -706,3 +946,4 @@ class DataIngestion:
                         "",
                         sep="\n",
                     )
+
